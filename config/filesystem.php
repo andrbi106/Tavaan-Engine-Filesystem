@@ -2,55 +2,29 @@
 
 declare(strict_types=1);
 
-/*|--------------------------------------------------------------------------
- | Filesystem Engine Configuration
- |--------------------------------------------------------------------------
- |
- | پیکربندی موتور filesystem — همهٔ کلیدهای مستندشده در `docs/03-engines/filesystem.md` بخش «پیکربندی».
- |
- |@see https://github.com/Derogaramin/Tavaan-Doc/blob/main/docs/03-engines/filesystem.md
- */
-
 return [
-    /*| پیش‌فرض موتور (driver/store یا حالت فعال) */
-    'default' => env('FILESYSTEM_DEFAULT', 'local'),
+    /*| Disk پیش‌فرض */
+    'default' => \getenv('TVN_FILESYSTEM_DISK') !== false ? \getenv('TVN_FILESYSTEM_DISK') : 'local',
 
-    /*| لیست درایورها */
-    'drivers' => [
+    /*| Diskهای مختلف */
+    'disks' => [
         'local' => [
-            // پیکربندی درایور local
-            'enabled' => true,
+            'driver' => 'local',
+            'root' => \getenv('TVN_STORAGE_PATH') !== false
+                ? \getenv('TVN_STORAGE_PATH') . '/app'
+                : 'storage/app',
+            'visibility' => 'private',
         ],
-        's3' => [
-            // پیکربندی درایور s3
-            'enabled' => true,
-        ],
-        'ftp' => [
-            // پیکربندی درایور ftp
-            'enabled' => true,
+        'public' => [
+            'driver' => 'local',
+            'root' => 'storage/app/public',
+            'visibility' => 'public',
         ],
         'memory' => [
-            // پیکربندی درایور memory
-            'enabled' => true,
+            'driver' => 'memory',
         ],
     ],
 
-    /*| کلید کش (در صورت استفاده) */
-    'prefix' => env('FILESYSTEM_PREFIX', 'filesystem:'),
-
-    /*| تنظیمات لاگ */
-    'log' => [
-        'channel' => env('FILESYSTEM_LOG_CHANNEL', 'filesystem'),
-    ],
-
-    /*| Facade */
-    'facade' => [
-        'name' => 'Storage',
-        'accessor' => 'filesystem',
-    ],
-
-    /*| سایر کلیدها (طبق مستندات) */
-    'options' => [
-        // TODO: کلیدهای اضافی طبق سند §۶ (پیکربندی)
-    ],
+    /*| Symlinkها */
+    'links' => [],
 ];

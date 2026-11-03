@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-/*| پیام‌های en برای موتور filesystem */
-
 return [
-    'error_default' => 'Unknown error (filesystem)',
-    'not_configured' => 'Engine not configured (filesystem)',
+    'error_path_outside_root' => 'Path "{0}" is outside the allowed root.',
+    'error_file_not_found' => 'File "{0}" not found.',
+    'error_write_failed' => 'Failed to write file "{0}".',
 ];

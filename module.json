@@ -2,7 +2,7 @@
   "id": "tavaan.engine.filesystem",
   "type": "engine",
   "name": "Filesystem",
-  "title_fa": "سامانهٔ فایل",
+  "title_fa": "سامانه فایل",
   "version": "0.1.0",
   "namespace": "Tavaan\\Engine\\Filesystem\\",
   "autoload": {
@@ -11,36 +11,21 @@
     }
   },
   "providers": [
-    "Tavaan\\Engine\\Filesystem\\FilesystemManagerServiceProvider"
+    "Tavaan\\Engine\\Filesystem\\FilesystemServiceProvider"
   ],
   "requires": {
     "php": ">=8.2",
-    "engines": [
-      "config"
-    ]
-  },
-  "soft_requires": {
-    "engines": [
-      "crypt",
-      "http",
-      "compat"
-    ],
-    "extensions": [
-      "curl",
-      "fileinfo"
-    ]
+    "engines": ["config"]
   },
   "config": {
     "file": "config/filesystem.php",
     "key": "filesystem"
   },
-  "commands": [
-    "storage:link"
-  ],
+  "tables": [],
+  "commands": [],
   "facade": {
     "name": "Storage",
     "accessor": "filesystem"
   },
-  "docs": "docs/03-engines/filesystem.md",
-  "notes": "M5 — ۴ درایور (local/s3/ftp/memory). 🔒 Path Sandbox + Atomic Write + S3 SigV4 خودنوشته (بدون SDK) + presigned URL. disk چندگانه با پیکربندی filesystem.disks."
+  "docs": "docs/03-engines/filesystem.md"
 }
