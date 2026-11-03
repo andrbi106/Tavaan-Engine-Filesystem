@@ -2,73 +2,55 @@
 
 declare(strict_types=1);
 
-/*
- * تَوان | Tavaan — Filesystem
- * config/filesystem.php — پیکربندی diskها (DOC-063 §4).
+/*|--------------------------------------------------------------------------
+ | Filesystem Engine Configuration
+ |--------------------------------------------------------------------------
+ |
+ | پیکربندی موتور filesystem — همهٔ کلیدهای مستندشده در `docs/03-engines/filesystem.md` بخش «پیکربندی».
+ |
+ |@see https://github.com/Derogaramin/Tavaan-Doc/blob/main/docs/03-engines/filesystem.md
  */
 
 return [
-    'default' => env_string('TVN_FILESYSTEM_DISK', 'local'),
+    /*| پیش‌فرض موتور (driver/store یا حالت فعال) */
+    'default' => env('FILESYSTEM_DEFAULT', 'local'),
 
-    'disks' => [
+    /*| لیست درایورها */
+    'drivers' => [
         'local' => [
-            'driver' => 'local',
-            'root' => storage_path('app'),
-            'visibility' => 'private',
-            'throw' => true,
+            // پیکربندی درایور local
+            'enabled' => true,
         ],
-
-        'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env_string('TVN_APP_URL', 'http://localhost:8000'), '/') . '/storage',
-            'visibility' => 'public',
-        ],
-
-        'private' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private'),
-            'visibility' => 'private',
-        ],
-
-        'memory' => [
-            'driver' => 'memory',
-        ],
-
-        'backups' => [
-            'driver' => 'local',
-            'root' => storage_path('backups'),
-            'visibility' => 'private',
-        ],
-
         's3' => [
-            'driver' => 's3',
-            'key' => env_string('AWS_KEY', ''),
-            'secret' => env_string('AWS_SECRET', ''),
-            'region' => env_string('AWS_REGION', 'us-east-1'),
-            'bucket' => env_string('AWS_BUCKET', ''),
-            'endpoint' => env_string('AWS_ENDPOINT', ''),   // برای S3-compatible (Minio/ArvanCloud)
-            'use_path_style' => env_bool('AWS_PATH_STYLE', true),
-            'visibility' => 'private',
-            'timeout' => 15.0,
-            'verify_tls' => env_bool('TVN_S3_VERIFY_TLS', true),
+            // پیکربندی درایور s3
+            'enabled' => true,
         ],
-
         'ftp' => [
-            'driver' => 'ftp',
-            'host' => env_string('FTP_HOST', ''),
-            'port' => env_int('FTP_PORT', 21),
-            'username' => env_string('FTP_USERNAME', ''),
-            'password' => env_string('FTP_PASSWORD', ''),
-            'ssl' => env_bool('FTP_SSL', false),
-            'root' => env_string('FTP_ROOT', ''),
-            'passive' => true,
-            'timeout' => 15.0,
+            // پیکربندی درایور ftp
+            'enabled' => true,
+        ],
+        'memory' => [
+            // پیکربندی درایور memory
+            'enabled' => true,
         ],
     ],
 
-    // symlinkهای عمومی — با `tvn storage:link` ساخته می‌شوند
-    'links' => [
-        base_path('public/storage') => storage_path('app/public'),
+    /*| کلید کش (در صورت استفاده) */
+    'prefix' => env('FILESYSTEM_PREFIX', 'filesystem:'),
+
+    /*| تنظیمات لاگ */
+    'log' => [
+        'channel' => env('FILESYSTEM_LOG_CHANNEL', 'filesystem'),
+    ],
+
+    /*| Facade */
+    'facade' => [
+        'name' => 'Storage',
+        'accessor' => 'filesystem',
+    ],
+
+    /*| سایر کلیدها (طبق مستندات) */
+    'options' => [
+        // TODO: کلیدهای اضافی طبق سند §۶ (پیکربندی)
     ],
 ];

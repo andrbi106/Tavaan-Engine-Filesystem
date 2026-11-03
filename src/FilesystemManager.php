@@ -4,344 +4,173 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Filesystem;
 
-use Tavaan\Core\Contracts\Config\RepositoryInterface as ConfigRepository;
-use Tavaan\Core\Contracts\Container\ContainerInterface;
-use Tavaan\Core\Contracts\Encryption\EncrypterInterface;
-use Tavaan\Core\Contracts\Filesystem\FilesystemInterface;
-use Tavaan\Engine\Filesystem\Adapters\FtpFilesystem;
-use Tavaan\Engine\Filesystem\Adapters\LocalFilesystem;
-use Tavaan\Engine\Filesystem\Adapters\MemoryFilesystem;
-use Tavaan\Engine\Filesystem\Adapters\S3Filesystem;
-use Tavaan\Engine\Filesystem\Exceptions\FilesystemException;
+use Tavaan\Core\Contracts\Config\RepositoryInterface as Config;
 
 /**
- * تَوان | Tavaan — Filesystem
- * FilesystemManager — مدیر diskهای چندگانه (local/s3/ftp/memory؛ DOC-063 §4).
+ * FilesystemManager — پیاده‌سازی اصلی موتور.
  *
- * متدهای FilesystemInterface به disk پیش‌فرض واگذار می‌شوند (Facade: Storage).
- *
- * @api 1.0
- * @see docs/03-engines/filesystem.md
+ * @see \Tavaan\Engine\Filesystem\Contracts\FilesystemManagerInterface
  */
-final class FilesystemManager implements FilesystemInterface
+final class FilesystemManager implements Contracts\FilesystemManagerInterface
 {
-    /** @var array<string, FilesystemInterface> */
-    private array $disks = [];
-
-    /** @var array<string, \Closure(array<string, mixed>, ?ContainerInterface): FilesystemInterface> */
-    private array $extensions = [];
-
+    /**
+     * @param Config $config پیکربندی موتور
+     */
     public function __construct(
-        private readonly ?ConfigRepository $config = null,
-        private readonly ?ContainerInterface $container = null,
-        private readonly ?EncrypterInterface $encrypter = null,
+        private readonly Config $config,
     ) {
     }
 
-    // ─── diskها ───────────────────────────────────────────────────────────
-
-    public function getDefaultDisk(): string
-    {
-        return (string) ($this->config?->get('filesystem.default', 'local') ?? 'local');
-    }
-
-    public function disk(?string $name = null): FilesystemInterface
-    {
-        $name ??= $this->getDefaultDisk();
-
-        return $this->disks[$name] ??= $this->resolveDisk($name);
-    }
-
-    /** ثبت درایور سفارشی. */
-    public function extend(string $driver, \Closure $factory): void
-    {
-        $this->extensions[$driver] = $factory;
-    }
-
-    /** disk پیش‌فرض (برای Facade). */
-    public function diskName(): string
-    {
-        return $this->getDefaultDisk();
-    }
-
-    private function resolveDisk(string $name): FilesystemInterface
-    {
-        $config = (array) ($this->config?->get('filesystem.disks.' . $name, []) ?? []);
-        if ($config === []) {
-            throw FilesystemException::diskNotConfigured($name);
-        }
-
-        $driver = (string) ($config['driver'] ?? $name);
-
-        if (isset($this->extensions[$driver])) {
-            return ($this->extensions[$driver])($config, $this->container);
-        }
-
-        return match ($driver) {
-            'local' => new LocalFilesystem($name, $config, $this->localSigner()),
-            'memory' => new MemoryFilesystem($name, (string) ($config['url'] ?? '')),
-            's3' => new S3Filesystem($name, $config),
-            'ftp', 'ftps' => new FtpFilesystem($name, $config),
-            default => throw FilesystemException::unknownDriver($driver),
-        };
-    }
-
-    /** امضاکنندهٔ temporaryUrl برای diskهای local (HMAC با کلید اپ). */
-    private function localSigner(): ?\Closure
-    {
-        $encrypter = $this->encrypter;
-
-        return $encrypter === null
-            ? null
-            : static fn (string $path, string $expires): string => $encrypter->hmac($path . '|' . $expires, 'filesystem.tempurl');
-    }
-
-    // ─── putFile / download ───────────────────────────────────────────────
-
     /**
-     * ذخیرهٔ فایل آپلودشده با نام تصادفی (DOC-063 §3 / DOC-074 §2: rename امن).
-     *
-     * @param object $file UploadedFile (http engine) یا هر شیء با move()/path()
-     *
-     * @return string|false مسیر ذخیره‌شده (false در صورت شکست)
+     * {@inheritdoc}
      */
-    public function putFile(string $directory, object $file, string $visibility = '', ?string $disk = null): string|false
+    public function disk(/* ... */): mixed
     {
-        $extension = \method_exists($file, 'extension') ? (string) $file->extension() : '';
-        $name = \bin2hex(\random_bytes(20)) . ($extension !== '' ? '.' . $extension : '');
-
-        return $this->putFileAs($directory, $file, $name, $visibility, $disk);
-    }
-
-    /** @param object $file */
-    public function putFileAs(string $directory, object $file, string $name, string $visibility = '', ?string $disk = null): string|false
-    {
-        $path = \trim($directory, '/') === '' ? $name : \trim($directory, '/') . '/' . $name;
-        $target = $this->disk($disk);
-
-        if (\method_exists($file, 'path')) {
-            $content = @\file_get_contents((string) $file->path());
-            if ($content !== false) {
-                $ok = $target->put($path, $content);
-                if ($ok && $visibility !== '') {
-                    $target->setVisibility($path, $visibility);
-                }
-
-                return $ok ? $path : false;
-            }
-        }
-
-        if (\method_exists($file, 'move')) {
-            $tmpDir = \sys_get_temp_dir() . '/tvn-upload-' . \bin2hex(\random_bytes(4));
-            \mkdir($tmpDir, 0700, true);
-            $moved = (string) $file->move($tmpDir, $name);
-            $movedPath = $moved !== '' ? $moved : $tmpDir . '/' . $name;
-            $content = @\file_get_contents($movedPath);
-            @\unlink($movedPath);
-            @\rmdir($tmpDir);
-
-            if ($content === false) {
-                return false;
-            }
-
-            return $target->put($path, $content) ? $path : false;
-        }
-
-        return false;
+        // TODO: پیاده‌سازی disk مطابق مستندات (سند §3 API).
+        return null;
     }
 
     /**
-     * پاسخ دانلود (Content-Disposition: attachment) — وابستگی نرم به موتور http.
-     *
-     * @return object Response
+     * {@inheritdoc}
      */
-    public function download(string $path, ?string $name = null, ?string $disk = null): object
+    public function get(/* ... */): mixed
     {
-        $filesystem = $disk === null ? $this->disk() : $this->disk($disk);
-        $content = $filesystem->get($path);
-        if ($content === null) {
-            throw new \Tavaan\Core\Exceptions\Filesystem\FileNotFoundException('filesystem.file_not_found', ['path' => $path]);
-        }
-
-        $name ??= \basename($path);
-        $mime = $filesystem->mimeType($path);
-
-        $headers = [
-            'Content-Type' => $mime,
-            'Content-Length' => (string) \strlen($content),
-            'Content-Disposition' => 'attachment; filename="' . \addcslashes($name, '"') . '"',
-            'Cache-Control' => 'no-store',
-        ];
-
-        $responseClass = \Tavaan\Engine\Http\Response::class;
-        if (!\class_exists($responseClass)) {
-            throw FilesystemException::notSupported('download (بدون موتور http)', $filesystem->diskName());
-        }
-
-        /** @var object */
-        return new $responseClass($content, 200, $headers);
+        // TODO: پیاده‌سازی get مطابق مستندات (سند §3 API).
+        return null;
     }
-
-    // ─── symlink عمومی (storage:link) ─────────────────────────────────────
 
     /**
-     * ساخت symlinkهای config (filesystem.links) — DOC-063 §4.
-     *
-     * @return list<string> مسیرهای ساخته‌شده
+     * {@inheritdoc}
      */
-    public function createPublicLinks(): array
+    public function put(/* ... */): mixed
     {
-        $links = (array) ($this->config?->get('filesystem.links', []) ?? []);
-        $created = [];
-
-        foreach ($links as $link => $target) {
-            $link = (string) $link;
-            $target = (string) $target;
-
-            if (\is_link($link)) {
-                continue;
-            }
-            if (!\is_dir($target)) {
-                \mkdir($target, 0775, true);
-            }
-            $dir = \dirname($link);
-            if (!\is_dir($dir)) {
-                \mkdir($dir, 0775, true);
-            }
-            if (@\symlink($target, $link)) {
-                $created[] = $link;
-            }
-        }
-
-        return $created;
+        // TODO: پیاده‌سازی put مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    // ─── FilesystemInterface → disk پیش‌فرض ───────────────────────────────
-
-    public function get(string $path): ?string
+    /**
+     * {@inheritdoc}
+     */
+    public function exists(/* ... */): mixed
     {
-        return $this->disk()->get($path);
+        // TODO: پیاده‌سازی exists مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    /** @return resource|null */
-    public function readStream(string $path)
+    /**
+     * {@inheritdoc}
+     */
+    public function delete(/* ... */): mixed
     {
-        return $this->disk()->readStream($path);
+        // TODO: پیاده‌سازی delete مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function put(string $path, string $content): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function copy(/* ... */): mixed
     {
-        return $this->disk()->put($path, $content);
+        // TODO: پیاده‌سازی copy مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    /** @param resource $stream */
-    public function writeStream(string $path, $stream): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function move(/* ... */): mixed
     {
-        return $this->disk()->writeStream($path, $stream);
+        // TODO: پیاده‌سازی move مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function exists(string $path): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function size(/* ... */): mixed
     {
-        return $this->disk()->exists($path);
+        // TODO: پیاده‌سازی size مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function missing(string $path): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function url(/* ... */): mixed
     {
-        return $this->disk()->missing($path);
+        // TODO: پیاده‌سازی url مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    /** @param string|list<string> $paths */
-    public function delete(string|array $paths): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function temporaryUrl(/* ... */): mixed
     {
-        return $this->disk()->delete($paths);
+        // TODO: پیاده‌سازی temporaryUrl مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function copy(string $from, string $to): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function files(/* ... */): mixed
     {
-        return $this->disk()->copy($from, $to);
+        // TODO: پیاده‌سازی files مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function move(string $from, string $to): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function allFiles(/* ... */): mixed
     {
-        return $this->disk()->move($from, $to);
+        // TODO: پیاده‌سازی allFiles مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function size(string $path): int
+    /**
+     * {@inheritdoc}
+     */
+    public function directories(/* ... */): mixed
     {
-        return $this->disk()->size($path);
+        // TODO: پیاده‌سازی directories مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function lastModified(string $path): int
+    /**
+     * {@inheritdoc}
+     */
+    public function makeDirectory(/* ... */): mixed
     {
-        return $this->disk()->lastModified($path);
+        // TODO: پیاده‌سازی makeDirectory مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function mimeType(string $path): string
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteDirectory(/* ... */): mixed
     {
-        return $this->disk()->mimeType($path);
+        // TODO: پیاده‌سازی deleteDirectory مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function append(string $path, string $content): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function readStream(/* ... */): mixed
     {
-        return $this->disk()->append($path, $content);
+        // TODO: پیاده‌سازی readStream مطابق مستندات (سند §3 API).
+        return null;
     }
 
-    public function prepend(string $path, string $content): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function writeStream(/* ... */): mixed
     {
-        return $this->disk()->prepend($path, $content);
-    }
-
-    /** @return list<string> */
-    public function files(string $directory = ''): array
-    {
-        return $this->disk()->files($directory);
-    }
-
-    /** @return list<string> */
-    public function allFiles(string $directory = ''): array
-    {
-        return $this->disk()->allFiles($directory);
-    }
-
-    /** @return list<string> */
-    public function directories(string $directory = ''): array
-    {
-        return $this->disk()->directories($directory);
-    }
-
-    /** @return list<string> */
-    public function allDirectories(string $directory = ''): array
-    {
-        return $this->disk()->allDirectories($directory);
-    }
-
-    public function makeDirectory(string $directory): bool
-    {
-        return $this->disk()->makeDirectory($directory);
-    }
-
-    public function deleteDirectory(string $directory): bool
-    {
-        return $this->disk()->deleteDirectory($directory);
-    }
-
-    public function visibility(string $path): string
-    {
-        return $this->disk()->visibility($path);
-    }
-
-    public function setVisibility(string $path, string $visibility): bool
-    {
-        return $this->disk()->setVisibility($path, $visibility);
-    }
-
-    public function url(string $path): string
-    {
-        return $this->disk()->url($path);
-    }
-
-    public function temporaryUrl(string $path, \DateTimeInterface $expiration): string
-    {
-        return $this->disk()->temporaryUrl($path, $expiration);
+        // TODO: پیاده‌سازی writeStream مطابق مستندات (سند §3 API).
+        return null;
     }
 }
