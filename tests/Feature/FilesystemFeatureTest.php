@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Filesystem\Tests\Feature;
 
-use PHPUnit\Framework\TestCase;
+use Tavaan\Testing\TestCase;
 use Tavaan\Engine\Filesystem\FilesystemManager;
 use Tavaan\Engine\Filesystem\FilesystemServiceProvider;
 use Tavaan\Engine\Filesystem\Contracts\FilesystemInterface;

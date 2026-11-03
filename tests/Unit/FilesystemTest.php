@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Filesystem\Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
+use Tavaan\Testing\TestCase;
 use Tavaan\Engine\Filesystem\FilesystemManager;
 use Tavaan\Engine\Filesystem\Drivers\LocalFilesystem;
 use Tavaan\Engine\Filesystem\Drivers\MemoryFilesystem;
