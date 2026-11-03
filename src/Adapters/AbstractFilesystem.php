@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Filesystem\Adapters;
 
-use Tavaan\Core\Contracts\Filesystem\FilesystemInterface;
-use Tavaan\Core\Exceptions\Filesystem\FileNotFoundException;
+use Tavaan\Engine\Filesystem\Contracts\FilesystemInterface;
+use Tavaan\Engine\Filesystem\Exceptions\FileNotFoundException;
 
 /**
  * تَوان | Tavaan — Filesystem
