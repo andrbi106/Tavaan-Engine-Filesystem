@@ -9,7 +9,7 @@ use Tavaan\Core\Contracts\Console\CommandInterface;
 /**
  * storage:link command.
  */
-final class Storage_linkCommand implements CommandInterface
+final class StorageLinkCommand implements CommandInterface
 {
     public function name(): string
     {
