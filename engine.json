@@ -15,7 +15,9 @@
   ],
   "requires": {
     "php": ">=8.2",
-    "engines": ["config"]
+    "engines": [
+      "config"
+    ]
   },
   "config": {
     "file": "config/filesystem.php",
@@ -27,5 +29,6 @@
     "name": "Storage",
     "accessor": "filesystem"
   },
-  "docs": "docs/03-engines/filesystem.md"
+  "docs": "docs/03-engines/filesystem.md",
+  "class": "Tavaan\\Engine\\Filesystem\\FilesystemEngine"
 }

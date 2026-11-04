@@ -2,6 +2,8 @@
 
 > **سامانه فایل** — موتور Filesystem در فریمورک تَوان
 
+این موتور از کلاس پایهٔ `Engine` (در [Tavaan-Engine-Core](https://github.com/andrbi106/Tavaan-Engine-Core)) ارث می‌برد.
+
 ## مشخصات
 
 | فیلد | مقدار |
@@ -11,73 +13,60 @@
 | عنوان فارسی | سامانه فایل |
 | نسخه | `0.1.0` |
 | namespace | `Tavaan\Engine\Filesystem` |
-| نوع | `engine` |
-| Facade | `Storage` (accessor: `filesystem`) |
+| کلاس موتور | `Tavaan\Engine\Filesystem\FilesystemEngine` |
+| Facade | Storage (`filesystem`) |
 
-## قراردادها (Contracts)
+## کلاس موتور
 
-این موتور قراردادهای زیر را ارائه می‌دهد:
+```php
+namespace Tavaan\Engine\Filesystem;
 
-- `Tavaan\Engine\Filesystem\Contracts\FilesystemInterface`
+use Tavaan\EngineCore\Engine as BaseEngine;
+use Tavaan\EngineCore\Contracts\EngineManifestInterface;
 
-## خطاها (Exceptions)
+final class FilesystemEngine extends BaseEngine
+{
+    public function __construct(EngineManifestInterface $manifest)
+    {
+        parent::__construct($manifest);
+    }
 
-- `Tavaan\Engine\Filesystem\Exceptions\DiskFullException`
-- `Tavaan\Engine\Filesystem\Exceptions\FileNotFoundException`
-- `Tavaan\Engine\Filesystem\Exceptions\FilesystemException`
-- `Tavaan\Engine\Filesystem\Exceptions\PathTraversalException`
+    public function register(ContainerInterface $container): void
+    {
+        parent::register($container);
+        // bindingهای اختصاصی موتور
+    }
 
-## Facadeها
+    public function boot(): void
+    {
+        parent::boot();
+    }
+}
+```
 
-- `Tavaan\Engine\Filesystem\Facades\Storage`
+**فایل:** `src/FilesystemEngine.php`
 
-## کلاس‌های اصلی
+## وابستگی‌ها
 
-- `src/Adapters/AbstractFilesystem.php`
-- `src/Adapters/FtpFilesystem.php`
-- `src/Adapters/S3/CurlS3Transport.php`
-- `src/Adapters/S3/S3TransportInterface.php`
-- `src/Adapters/S3/StreamS3Transport.php`
-- `src/Adapters/S3Filesystem.php`
-- `src/Adapters/S3Signer.php`
-- `src/Console/StorageLinkCommand.php`
-- `src/Drivers/LocalFilesystem.php`
-- `src/Drivers/MemoryFilesystem.php`
-- `src/FilesystemManager.php`
-- `src/FilesystemServiceProvider.php`
+**موتورهای مورد‌نیاز:** `config`
 
 ## Service Providerها
 
 - `Tavaan\Engine\Filesystem\FilesystemServiceProvider`
 
-## وابستگی‌ها
+## سه درگاه ارتباط با سایر موتورها
 
-**موتورهای مورد‌نیاز:**
-
-- `config`
-
-## پیکربندی
-
-- فایل پیکربندی: `config/filesystem.php`
-- کلید: `filesystem`
+| درگاه | الگو | متدهای convenience |
+|---|---|---|
+| Container | pull-based DI | `make()`, `bound()` |
+| Events | pub/sub | `dispatch()`, `listen()` |
+| EngineBus | point-to-point RPC | `call()`, `offer()` |
 
 ## نصب
 
 ```bash
 git clone https://github.com/andrbi106/Tavaan-Engine-Filesystem.git
 ```
-
-این موتور بخشی از فریمورک تَوان است و معمولاً به‌صورت مستقیم نصب نمی‌شود،
-بلکه توسط [Tavaan-Core](https://github.com/andrbi106/Tavaan-Core) مدیریت می‌شود.
-
-## روابط با سایر مخازن
-
-| مخزن | نقش |
-|---|---|
-| **`andrbi106/Tavaan-Engine-Filesystem`** (این مخزن) | موتور Filesystem |
-| `andrbi106/Tavaan-Engine-Core` | ساختار پایه + درگاه ارتباط موتورها |
-| `andrbi106/Tavaan-Core` | اسکلت اپلیکیشن + همهٔ موتورها |
-| `Derogaramin/Tavaan-Framework` | فریمورک مادر (monorepo) |
 
 ## مجوز
 
